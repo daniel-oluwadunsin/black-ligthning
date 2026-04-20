@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+:root {
+  --background: #060708;
+  --foreground: #f1f4f8;
+  --panel: #0d1014;
+  --muted: #8e95a3;
+  --line: #1c212b;
+  --electric: #f6e71d;
+  --electric-soft: rgba(246, 231, 29, 0.35);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--panel);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-electric: var(--electric);
+  --font-sans: var(--font-body);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-body), sans-serif;
+  min-height: 100vh;
+}
+
+.page-wrap {
+  position: relative;
+  overflow: hidden;
+  min-height: 100vh;
+}
+
+.electric-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at 12% 18%,
+      rgba(246, 231, 29, 0.14),
+      transparent 42%
+    ),
+    radial-gradient(
+      circle at 80% 4%,
+      rgba(246, 231, 29, 0.08),
+      transparent 33%
+    ),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.02), transparent 42%);
+}
+
+.electric-grid {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 52px 52px;
+  mask-image: radial-gradient(circle at center, black 15%, transparent 80%);
+  opacity: 0.35;
+}
+
+.edge-glow {
+  box-shadow:
+    0 0 0 1px var(--line),
+    0 0 40px rgba(246, 231, 29, 0.08);
+}
+
+.display-title {
+  font-family: var(--font-display), sans-serif;
+  letter-spacing: 0.03em;
+}

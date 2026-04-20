@@ -12,11 +12,25 @@ datasource db {
   provider = "postgresql"
 }
 
-model User {
+model Song {
+  id               String            @id @default(uuid())
+  title            String
+  artist           String
+  song             String
+  artwork          String
+  createdAt        DateTime          @default(now())
+  songFingerprints SongFingerprint[]
+}
+
+model SongFingerprint {
   id        String   @id @default(uuid())
-  email     String   @unique
-  name      String?
-  password  String
+  songId    String
+  hash      String
+  offset    Int
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+
+  Song Song @relation(fields: [songId], references: [id], onDelete: Cascade)
+
+  @@index([songId])
+  @@index([hash])
 }
