@@ -1,13 +1,19 @@
 import { Router } from "express";
 import { validateSchema } from "../schema";
-import { addSongSchema, identifySongSchema } from "../schema/add-song.schema";
-import { addSong, identifySong } from "../controllers/song.controller";
+import {
+  addSongSchema,
+  getSongsSchema,
+  identifySongSchema,
+} from "../schema/add-song.schema";
+import { addSong, getSongs, identifySong } from "../controllers/song.controller";
 import {
   uploadMiddleware,
   uploadWithFieldMiddleware,
 } from "../middleware/upload.middleware";
 
 export const songRoutes = Router();
+
+songRoutes.get("/", validateSchema(getSongsSchema), getSongs);
 
 songRoutes.post(
   "/",

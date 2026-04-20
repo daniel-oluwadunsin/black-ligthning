@@ -25,3 +25,10 @@ export const addSongSchema: ZodSchema = zod.object({
 export const identifySongSchema: ZodSchema = zod.object({
   file: fileSchema,
 });
+
+export const getSongsSchema: ZodSchema = zod.object({
+  query: zod.object({
+    page: zod.coerce.number().int().min(1).optional(),
+    limit: zod.coerce.number().int().min(1).max(50).optional(),
+  }),
+});

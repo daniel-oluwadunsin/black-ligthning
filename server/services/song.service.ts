@@ -38,6 +38,58 @@ const normalizeHash = (hash: string) => {
 
 const LEGACY_HASH_QUERY_BATCH_SIZE = 200;
 
+const DEFAULT_PAGE = 1;
+const DEFAULT_LIMIT = 12;
+const MAX_LIMIT = 50;
+
+type GetSongsParams = {
+  page: number;
+  limit: number;
+};
+
+export const getSongs = async ({ page, limit }: GetSongsParams) => {
+  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : DEFAULT_PAGE;
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), MAX_LIMIT) : DEFAULT_LIMIT;
+  const skip = (safePage - 1) * safeLimit;
+
+  const [songs, total] = await Promise.all([
+    prisma.song.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+      skip,
+      take: safeLimit,
+      select: {
+        id: true,
+        title: true,
+        artist: true,
+        artwork: true,
+        createdAt: true,
+      },
+    }),
+    prisma.song.count(),
+  ]);
+
+  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+
+  return {
+    success: true,
+    message: "Songs fetched successfully",
+    statusCode: HttpStatusCode.Ok,
+    data: {
+      songs,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        hasNextPage: safePage < totalPages,
+        hasPreviousPage: safePage > 1,
+      },
+    },
+  };
+};
+
 export const addSong = async (body: AddSongDto) => {
   const { title, artist, artwork, song: songFile } = body;
 
@@ -50,8 +102,8 @@ export const addSong = async (body: AddSongDto) => {
     data: {
       title,
       artist,
-      artwork: artworkImageUrl,
       song: songUrl,
+      artwork: artworkImageUrl,
     },
   });
 
@@ -101,7 +153,6 @@ export const identifySong = async (songFile: Express.Multer.File) => {
     },
   });
 
-  // Backward-compatibility fallback for legacy hashes containing extra suffix parts.
   if (songsFp.length === 0) {
     const legacyMatches: SongFingerprint[] = [];
 

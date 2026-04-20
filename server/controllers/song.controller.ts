@@ -24,6 +24,23 @@ export const addSong = async (
   }
 };
 
+export const getSongs = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const page = Number(req.query.page ?? 1);
+    const limit = Number(req.query.limit ?? 12);
+
+    const response = await songService.getSongs({ page, limit });
+
+    res.status(response?.statusCode).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const identifySong = async (
   req: Request,
   res: Response,
