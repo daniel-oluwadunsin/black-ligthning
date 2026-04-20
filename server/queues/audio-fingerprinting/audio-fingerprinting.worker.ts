@@ -52,6 +52,15 @@ export const audioFingerprintingWorker = new Worker<AudioFingerprintingJobData>(
       });
     }
 
+    await prisma.song.update({
+      where: {
+        id: songId,
+      },
+      data: {
+        isFingerprintComplete: true,
+      },
+    });
+
     await fsp.unlink(audio);
 
     if (artworkPath) {

@@ -24,6 +24,12 @@ export type SongRecord = {
   createdAt: string;
 };
 
+export type PublicSongRecord = Omit<SongRecord, "song">;
+
+export type PublicSongWithFingerprintRecord = PublicSongRecord & {
+  isFingerprintComplete: boolean;
+};
+
 export type AddSongApiResponse = {
   success: boolean;
   message: string;
@@ -40,6 +46,27 @@ export type IdentifySongApiResponse = {
   data: {
     song: SongRecord;
     confidence: number;
+  };
+};
+
+export type GetSongsApiResponse = {
+  success: boolean;
+  message: string;
+  statusCode: number;
+  data: {
+    songs: PublicSongWithFingerprintRecord[];
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+      hasNextPage: boolean;
+      hasPreviousPage: boolean;
+    };
+    fingerprinting: {
+      pendingCount: number;
+      hasPending: boolean;
+    };
   };
 };
 
@@ -87,6 +114,19 @@ const fetchMultipart = async <T>(
   return (await response.json()) as T;
 };
 
+const fetchJson = async <T>(path: string, signal?: AbortSignal): Promise<T> => {
+  const response = await fetch(`${API_BASE_URL}${path}`, {
+    method: "GET",
+    signal,
+  });
+
+  if (!response.ok) {
+    await parseApiError(response);
+  }
+
+  return (await response.json()) as T;
+};
+
 export const addSongApi = async (
   payload: {
     title: string;
@@ -115,6 +155,24 @@ export const identifySongApi = async (
   return fetchMultipart<IdentifySongApiResponse>(
     "/song/identify",
     formData,
+    signal,
+  );
+};
+
+export const getSongsApi = async (
+  params: {
+    page: number;
+    limit: number;
+  },
+  signal?: AbortSignal,
+): Promise<GetSongsApiResponse> => {
+  const searchParams = new URLSearchParams({
+    page: String(params.page),
+    limit: String(params.limit),
+  });
+
+  return fetchJson<GetSongsApiResponse>(
+    `/song?${searchParams.toString()}`,
     signal,
   );
 };

@@ -74,6 +74,9 @@ export default function Home() {
           <Button variant="secondary" onClick={() => router.push("/identify")}>
             Identify Song
           </Button>
+          <Button variant="secondary" onClick={() => router.push("/songs")}>
+            View Songs
+          </Button>
         </motion.div>
       </main>
     </div>

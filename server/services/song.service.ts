@@ -47,30 +47,42 @@ type GetSongsParams = {
   limit: number;
 };
 
-export const getSongs = async ({ page, limit }: GetSongsParams) => {
-  const safePage = Number.isFinite(page) && page > 0 ? Math.floor(page) : DEFAULT_PAGE;
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.min(Math.floor(limit), MAX_LIMIT) : DEFAULT_LIMIT;
-  const skip = (safePage - 1) * safeLimit;
+export const getSongs = async (query: GetSongsParams) => {
+  const page =
+    Number.isFinite(query.page) && query.page > 0
+      ? Math.floor(query.page)
+      : DEFAULT_PAGE;
+  const limit =
+    Number.isFinite(query.limit) && query.limit > 0
+      ? Math.min(Math.floor(query.limit), MAX_LIMIT)
+      : DEFAULT_LIMIT;
+  const skip = (page - 1) * limit;
 
-  const [songs, total] = await Promise.all([
+  const [songs, total, pendingFingerprintCount] = await Promise.all([
     prisma.song.findMany({
       orderBy: {
         createdAt: "desc",
       },
       skip,
-      take: safeLimit,
+      take: limit,
       select: {
         id: true,
         title: true,
         artist: true,
         artwork: true,
+        isFingerprintComplete: true,
         createdAt: true,
       },
     }),
     prisma.song.count(),
+    prisma.song.count({
+      where: {
+        isFingerprintComplete: false,
+      },
+    }),
   ]);
 
-  const totalPages = Math.max(1, Math.ceil(total / safeLimit));
+  const totalPages = Math.max(1, Math.ceil(total / limit));
 
   return {
     success: true,
@@ -79,12 +91,16 @@ export const getSongs = async ({ page, limit }: GetSongsParams) => {
     data: {
       songs,
       pagination: {
-        page: safePage,
-        limit: safeLimit,
+        page,
+        limit,
         total,
         totalPages,
-        hasNextPage: safePage < totalPages,
-        hasPreviousPage: safePage > 1,
+        hasNextPage: page < totalPages,
+        hasPreviousPage: page > 1,
+      },
+      fingerprinting: {
+        pendingCount: pendingFingerprintCount,
+        hasPending: pendingFingerprintCount > 0,
       },
     },
   };
@@ -93,16 +109,12 @@ export const getSongs = async ({ page, limit }: GetSongsParams) => {
 export const addSong = async (body: AddSongDto) => {
   const { title, artist, artwork, song: songFile } = body;
 
-  const [artworkImageUrl, songUrl] = await Promise.all([
-    uploadFileToGcs(artwork),
-    uploadFileToGcs(songFile),
-  ]);
+  const [artworkImageUrl] = await Promise.all([uploadFileToGcs(artwork)]);
 
   const song = await prisma.song.create({
     data: {
       title,
       artist,
-      song: songUrl,
       artwork: artworkImageUrl,
     },
   });

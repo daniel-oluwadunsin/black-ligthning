@@ -13,13 +13,14 @@ datasource db {
 }
 
 model Song {
-  id               String            @id @default(uuid())
-  title            String
-  artist           String
-  song             String?
-  artwork          String
-  createdAt        DateTime          @default(now())
-  songFingerprints SongFingerprint[]
+  id                    String            @id @default(uuid())
+  title                 String
+  artist                String
+  song                  String?
+  artwork               String
+  isFingerprintComplete Boolean           @default(false)
+  createdAt             DateTime          @default(now())
+  songFingerprints      SongFingerprint[]
 }
 
 model SongFingerprint {

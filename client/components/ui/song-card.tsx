@@ -7,6 +7,7 @@ type SongCardProps = {
   title: string;
   artist: string;
   confidence?: number;
+  isFingerprintComplete?: boolean;
 };
 
 export function SongCard({
@@ -14,6 +15,7 @@ export function SongCard({
   title,
   artist,
   confidence,
+  isFingerprintComplete,
 }: SongCardProps) {
   return (
     <motion.article
@@ -25,9 +27,23 @@ export function SongCard({
       <img
         src={artwork}
         alt={`${title} artwork`}
-        className="h-64 w-full rounded-[8px] object-cover"
+        className="h-64 w-full rounded-lg object-cover"
       />
       <div>
+        {typeof isFingerprintComplete === "boolean" ? (
+          <p
+            className={`mb-3 inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${
+              isFingerprintComplete
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                : "border-amber-400/40 bg-amber-400/10 text-amber-200"
+            }`}
+          >
+            {isFingerprintComplete
+              ? "Fingerprint Ready"
+              : "Fingerprint Processing"}
+          </p>
+        ) : null}
+
         <h3 className="display-title text-4xl leading-none text-foreground">
           {title}
         </h3>
