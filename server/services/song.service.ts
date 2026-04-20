@@ -15,6 +15,29 @@ import {
 } from "../utils/song.util";
 import chalk from "chalk";
 
+const HASH_DELIMITER = "_";
+
+const normalizeHash = (hash: string) => {
+  const [left, right] = hash.split(HASH_DELIMITER);
+
+  if (!left || !right) {
+    return hash;
+  }
+
+  const first = Number(left);
+  const second = Number(right);
+
+  if (Number.isFinite(first) && Number.isFinite(second)) {
+    const [low, high] = first <= second ? [first, second] : [second, first];
+    return `${low}${HASH_DELIMITER}${high}`;
+  }
+
+  const [a, b] = left <= right ? [left, right] : [right, left];
+  return `${a}${HASH_DELIMITER}${b}`;
+};
+
+const LEGACY_HASH_QUERY_BATCH_SIZE = 200;
+
 export const addSong = async (body: AddSongDto) => {
   const { title, artist, artwork, song: songFile } = body;
 
@@ -53,16 +76,68 @@ export const addSong = async (body: AddSongDto) => {
 export const identifySong = async (songFile: Express.Multer.File) => {
   const waveform = await getAudioWaveform(songFile.path);
   const fingerprints = createAudioFingerPrint(waveform);
+  const normalizedHashes = Array.from(
+    new Set(fingerprints.map((fp) => normalizeHash(fp.hash))),
+  );
 
   await fsp.unlink(songFile.path);
 
-  const songsFp = await prisma.songFingerprint.findMany({
+  if (fingerprints.length === 0)
+    throw new CustomError(
+      "No fingerprints could be generated from the audio",
+      HttpStatusCode.BadRequest,
+    );
+
+  let songsFp = await prisma.songFingerprint.findMany({
+    where: {
+      hash: {
+        in: normalizedHashes,
+      },
+    },
     select: {
       hash: true,
       offset: true,
       songId: true,
     },
   });
+
+  // Backward-compatibility fallback for legacy hashes containing extra suffix parts.
+  if (songsFp.length === 0) {
+    const legacyMatches: SongFingerprint[] = [];
+
+    for (
+      let i = 0;
+      i < normalizedHashes.length;
+      i += LEGACY_HASH_QUERY_BATCH_SIZE
+    ) {
+      const hashBatch = normalizedHashes.slice(
+        i,
+        i + LEGACY_HASH_QUERY_BATCH_SIZE,
+      );
+
+      const batchMatches = await prisma.songFingerprint.findMany({
+        where: {
+          OR: hashBatch.map((hash) => ({
+            hash: {
+              startsWith: `${hash}${HASH_DELIMITER}`,
+            },
+          })),
+        },
+        select: {
+          hash: true,
+          offset: true,
+          songId: true,
+        },
+      });
+
+      legacyMatches.push(...batchMatches);
+    }
+
+    songsFp = legacyMatches;
+  }
+
+  if (songsFp.length === 0)
+    throw new CustomError("No matching song found.", HttpStatusCode.NotFound);
 
   console.log(
     chalk.blue("[identifySong] Retrieved matching fingerprints from DB"),

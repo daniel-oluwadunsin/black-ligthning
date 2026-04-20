@@ -26,7 +26,21 @@ const normalizeHash = (hash: string) => {
   const parts = hash.split(HASH_DELIMITER);
 
   if (parts.length >= 2) {
-    return `${parts[0]}${HASH_DELIMITER}${parts[1]}`;
+    const firstPart = parts[0] ?? "";
+    const secondPart = parts[1] ?? "";
+    const first = Number(firstPart);
+    const second = Number(secondPart);
+
+    if (Number.isFinite(first) && Number.isFinite(second)) {
+      const [low, high] = first <= second ? [first, second] : [second, first];
+      return `${low}${HASH_DELIMITER}${high}`;
+    }
+
+    const [left, right] =
+      firstPart <= secondPart
+        ? [firstPart, secondPart]
+        : [secondPart, firstPart];
+    return `${left}${HASH_DELIMITER}${right}`;
   }
 
   return hash;
@@ -118,7 +132,12 @@ export const findPeakAmplitudes = (
   // sort in descending order of amplitude and take top N peaks
   peaks.sort((a, b) => b.value - a.value);
 
-  return peaks.slice(0, maxPeaks).map((peak) => peak.index);
+  // Keep only strong peaks, then sort by frequency bin so hash generation
+  // stays stable across recordings with slight amplitude variations.
+  return peaks
+    .slice(0, maxPeaks)
+    .map((peak) => peak.index)
+    .sort((a, b) => a - b);
 };
 
 export const createHashesFromPeakAmplitudes = (peaks: number[]) => {
@@ -226,6 +245,7 @@ export const compareFingerprints = (
 export const findBestMatch = (matchMap: MatchType) => {
   let bestSongKey = "";
   let bestSongScore = 0;
+  const totalScore = Array.from(matchMap.values()).reduce((a, b) => a + b, 0);
 
   for (const entry of matchMap.entries()) {
     const [songKey, songScore] = entry;
@@ -240,6 +260,6 @@ export const findBestMatch = (matchMap: MatchType) => {
 
   return {
     songId,
-    confidence: bestSongScore,
+    confidence: totalScore > 0 ? bestSongScore / totalScore : 0,
   };
 };
